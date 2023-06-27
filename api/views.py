@@ -127,6 +127,7 @@ class TodoListAPIView(APIView):
 
     def post(self, request):
         data = json.loads(request.body)
+        data['account'] = request.user.id
         serializer = TodoListSerializer(data=data)
         if serializer.is_valid():
             serializer.save()

@@ -53,7 +53,6 @@ class TodoList(models.Model):
 
 class Task(models.Model):
     name = models.CharField(max_length=120, blank=False)
-    description = models.TextField(blank=True)
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     todo_list = models.ForeignKey(
