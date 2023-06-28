@@ -122,6 +122,7 @@ class TodoListAPIView(APIView):
     def get(self, request):
         user = request.user
         todo_list = TodoList.objects.filter(account=user)
+
         serializer = TodoListSerializer(todo_list, many=True)
         return Response({"data": serializer.data})
 
@@ -158,6 +159,17 @@ class TaskAPIView(APIView):
 
     def post(self, request, id):
         data = json.loads(request.body)
+        todo_lists = TodoList.objects.filter(id=id)
+        if not todo_lists.exists():
+            return Response(
+                {"message": "No List found with given ID"}, status=HTTP_404_NOT_FOUND
+            )
+        todo_list = todo_lists.first()
+        if not self.has_perm(request, todo_list.account):
+            Response(
+                {"message": "You are not permitted to view this task list"},
+                status=HTTP_403_FORBIDDEN,
+            )
         data["todo_list"] = id
         serializer = TaskSerializer(data=data)
         if serializer.is_valid():
