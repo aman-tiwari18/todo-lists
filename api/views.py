@@ -77,12 +77,12 @@ class LoginAPIView(APIView):
 class SingleTodoListAPIView(APIView):
     def get(self, request, id):
         user = request.user
-        todo_lists = TodoList.objects.filter(id=id, account=user)
+        todo_lists = TodoList.objects.filter(id=id)
         if not todo_lists.exists():
             return Response(
                 {"message": "No List found with given ID"}, status=HTTP_404_NOT_FOUND
             )
-        todo_list = todo_lists.first()
+        todo_list = todo_lists.filter(account=user).first()
         if todo_list.account != user:
             return Response(
                 {"message": "You are not permitted to view this todo list"},
@@ -94,23 +94,28 @@ class SingleTodoListAPIView(APIView):
 
     def delete(self, request, id):
         user = request.user
-        todo_list = TodoList.objects.filter(id=id, account=user)
-        if not todo_list.exists():
+        todo_lists = TodoList.objects.filter(id=id)
+        if not todo_lists.exists():
             return Response(
                 {"message": "No List found with given ID"}, status=HTTP_404_NOT_FOUND
             )
-        todo_list.first().delete()
-        return Response({"message": "Todo List deleted Successfully"})
+        todo_list = todo_lists.filter(account=user).first()
+        serializer = TodoListSerializer(todo_list)
+        serializer.delete()
+        return Response(
+            {"message": "Todo List deleted Successfully", "id": id}
+        )
 
     def patch(self, request, id):
         user = request.user
-        todo_list = TodoList.objects.filter(id=id, account=user)
-        if not todo_list.exists():
+        todo_lists = TodoList.objects.filter(id=id)
+        if not todo_lists.exists():
             return Response(
                 {"message": "No List found with given ID"}, status=HTTP_404_NOT_FOUND
             )
+        todo_list = todo_lists.filter(account=user).first()
         serializer = TodoListSerializer(
-            todo_list.first(), data=request.data, partial=True
+            todo_list, data=request.data, partial=True
         )
         if serializer.is_valid():
             serializer.save()
@@ -122,13 +127,12 @@ class TodoListAPIView(APIView):
     def get(self, request):
         user = request.user
         todo_list = TodoList.objects.filter(account=user)
-
         serializer = TodoListSerializer(todo_list, many=True)
         return Response({"data": serializer.data})
 
     def post(self, request):
         data = json.loads(request.body)
-        data['account'] = request.user.id
+        data["account"] = request.user.id
         serializer = TodoListSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -165,6 +169,8 @@ class TaskAPIView(APIView):
                 {"message": "No List found with given ID"}, status=HTTP_404_NOT_FOUND
             )
         todo_list = todo_lists.first()
+        print(todo_list.account.id)
+        print(request.user.id)
         if not self.has_perm(request, todo_list.account):
             Response(
                 {"message": "You are not permitted to view this task list"},
